@@ -26,7 +26,7 @@ The script will :
 - include the configuration in `/etc/httpd/conf/httpd.conf`,
 - generate the working folder for your VirtualHost and give it the right rights,
 - create a folder `/home/username/.local-certificates`,
-- generate a certificate for this VirtualHost in the folder created previously,
+- generate a certificate for this VirtualHost in the folder created previously and give it corrects permissions,
 - create a symbolic link between the working folder and the Apache directory (`/srv/http/`),
 - add a line in the hosts file `/etc/hosts`.
 

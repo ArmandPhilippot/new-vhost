@@ -111,6 +111,8 @@ EOF
     echo "Include conf/vhosts/${_vhost}" >>/etc/httpd/conf/httpd.conf
     mkdir -p "/home/${_username}/.local-certificates"
     mkcert -cert-file "/home/${_username}/.local-certificates/${_vhost}.pem" -key-file "/home/${_username}/.local-certificates/${_vhost}-key.pem" "${_vhost}" "*.${_vhost}"
+    chown -R ${_username}:${_username} /home/${_username}/.local-certificates/${_vhost}.pem
+    chown -R ${_username}:${_username} /home/${_username}/.local-certificates/${_vhost}-key.pem
   fi
 fi
 
