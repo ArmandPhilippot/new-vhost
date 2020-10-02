@@ -40,10 +40,11 @@ This script will probably work for distributions using `httpd` and not `apache2`
 
 ## Changelog
 
-| Date       | Notes                                         |
-| :--------- | :-------------------------------------------- |
-| 2020-05-27 | Translation of instructions in English.       |
-| 2020-03-17 | Initial version - No history, formerly a gist |
+| Date       | Notes                                            |
+| :--------- | :----------------------------------------------- |
+| 2020-10-02 | Give corrects permissions to local certificates. |
+| 2020-05-27 | Translation of instructions in English.          |
+| 2020-03-17 | Initial version - No history, formerly a gist    |
 
 ## License
 
