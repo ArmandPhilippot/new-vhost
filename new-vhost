@@ -477,6 +477,33 @@ edit_hosts_file() {
 }
 
 ###############################################################################
+# Help menus
+# Functions to print the various help menus.
+###############################################################################
+
+# Display help then exit.
+print_help() {
+  cat <<EOF
+# USAGE
+new-vhost [OPTIONS]
+
+# DESCRIPTION
+new-vhost is a script to quickly create a new virtual host with a local certificate. It works with Apache (httpd) and mkcert.
+
+# OPTIONS
+-h, --help        Print this help.
+--version         Print new-vhost version.
+
+# ABOUT
+Version           $_version
+License           MIT
+Author            Armand Philippot
+EOF
+
+exit
+}
+
+###############################################################################
 # Main
 ###############################################################################
 
@@ -487,6 +514,7 @@ set_options() {
 
   while [ $# -ge 1 ]; do
     case $1 in
+    --help|-h) print_help ;;
     --version) print_version ;;
     *) invalid_usage ;;
     esac
