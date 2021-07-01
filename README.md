@@ -1,6 +1,6 @@
-# newVhost
+# new-vhost
 
-Create a new Apache VirtualHost on Manjaro Linux, and, probably the other distributions using `httpd`.
+Create a new Apache Virtual Host on Manjaro Linux, and, probably the other distributions using `httpd`.
 
 ## Requirements
 
@@ -10,25 +10,22 @@ Create a new Apache VirtualHost on Manjaro Linux, and, probably the other distri
 
 ## Use
 
-**The script must be executed with administrator rights (sudo).**
+Download `new-vhost` and make sure it as executable permission:
 
-Run the script in a terminal using `sudo sh filename.sh`.
+```bash
+chmod +x new-vhost
+```
 
-The script will ask you for more information before executing:
-
-- the username of your Linux session,
-- the path of your working directory (example /home/username/Websites),
-- the vhost name preferably with the TLD (example my-new-vhost.test).
+Run the script in a terminal using `./new-vhost`.
 
 The script will :
-
+- ask you some information to configure your vhost (name, webroot, workspace, certs path)
+- create a directory in your workspace named as your vhost and two subdirectory: one for the logs and another for the webroot,
+- generate a local certificate in the certs path provided
 - create the VirtualHost configuration file in `/etc/httpd/conf/vhosts/`,
 - include the configuration in `/etc/httpd/conf/httpd.conf`,
-- generate the working folder for your VirtualHost and give it the right rights,
-- create a folder `/home/username/.local-certificates`,
-- generate a certificate for this VirtualHost in the folder created previously and give it corrects permissions,
-- create a symbolic link between the working folder and the Apache directory (`/srv/http/`),
-- add a line in the hosts file `/etc/hosts`.
+- create a symbolic link between your vhost directory and the Apache directory (`/srv/http/`),
+- add two lines in the hosts file `/etc/hosts` (with and without `www`).
 
 ## Disclaimer
 
@@ -38,14 +35,6 @@ This script is designed to be used for a development environment. I do not recom
 
 This script will probably work for distributions using `httpd` and not `apache2`, but I have not tested it elsewhere than on Manjaro. Make sure the paths specified in the script exist before using it.
 
-## Changelog
-
-| Date       | Notes                                            |
-| :--------- | :----------------------------------------------- |
-| 2020-10-02 | Give corrects permissions to local certificates. |
-| 2020-05-27 | Translation of instructions in English.          |
-| 2020-03-17 | Initial version - No history, formerly a gist    |
-
 ## License
 
-This script is licensed under the MIT license. A copy of the license is included in the root of the script’s directory. The file is named LICENSE.
+This script is open-source and licensed under the [MIT license](./LICENSE).
