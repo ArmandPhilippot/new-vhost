@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/ArmandPhilippot/new-vhost/compare/v1.0.0...v2.0.0) (2021-07-02)
+
+
+### Features
+
+* use separate functions and remove sudo rights ([2605c07](https://github.com/ArmandPhilippot/new-vhost/commit/2605c07abce691ab987829204b4231b06dbb1109))
+
+
 ## 1.0.0 (2021-07-01)
 
 
