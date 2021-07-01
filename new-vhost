@@ -276,6 +276,36 @@ set_certs_path() {
   printf "%sSuccess:%s certs path saved.\n" "$_color_success" "$_color_reset"
 }
 
+print_summary() {
+  [ $# -ne 4 ] && error_callback
+
+  local _vhost_name=$1
+  local _webroot_name=$2
+  local _workspace_path=$3
+  local _certs_path=$4
+  local _summary_choice
+
+  printf "\n%sWarning:%s We are now going to configure the virtual host with the information you provide:\n" "$_color_warning" "$_color_reset"
+  printf "* Name: %s\n" "${_color_output}${_vhost_name}${_color_reset}"
+  printf "* Webroot: %s\n" "${_color_output}${_webroot_name}${_color_reset}"
+  printf "* Workspace: %s\n" "${_color_output}${_workspace_path}${_color_reset}"
+  printf "* Certs: %s\n" "${_color_output}${_certs_path}${_color_reset}"
+
+  while true; do
+    printf "\nShould we proceed? [y/n] "
+    read -r _summary_choice
+
+    case $_summary_choice in
+      [yY]) break ;;
+      [nN])
+        printf "Abort.\n"
+        exit
+        ;;
+      *) printf "\n%sError:%s Enter %s[y]%ses or %s[n]%so.\n" "$_color_error" "$_color_reset" "$_color_choice" "$_color_reset" "$_color_choice" "$_color_reset" ;;
+    esac
+  done
+}
+
 ###############################################################################
 # Virtual Host Creation
 # Proceed to the vhost creation with data provided by the user.
@@ -428,6 +458,7 @@ main() {
   set_webroot_name _webroot
   set_workspace_path _workspace
   set_certs_path _certs
+  print_summary "$_vhost" "$_webroot" "$_workspace" "$_certs"
   create_vhost_dir "$_workspace" "$_vhost" "$_webroot"
   generate_local_certs "$_certs" "$_vhost"
   create_vhost_config "$_workspace" "$_vhost" "$_webroot" "$_certs"
