@@ -1,0 +1,41 @@
+{
+  "name": "new-vhost",
+  "description": "A script to quickly create a new vhost.",
+  "keywords": [
+    "virtual-host",
+    "vhost",
+    "apache",
+    "script",
+    "bash"
+  ],
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Armand Philippot",
+    "url": "https://www.armandphilippot.com"
+  },
+  "homepage": "https://github.com/ArmandPhilippot/new-vhost#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArmandPhilippot/new-vhost.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ArmandPhilippot/new-vhost/issues"
+  },
+  "scripts": {
+    "bump": "replace-in-files --regex='_version=\"\\d+\\.\\d+\\.\\d+\"' --replacement='_version=\"'$npm_package_version'\"' new-vhost",
+    "release": "standard-version -a"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^12.1.4",
+    "@commitlint/config-conventional": "^12.1.4",
+    "husky": "^7.0.0",
+    "replace-in-files-cli": "^1.0.0",
+    "standard-version": "^9.3.0"
+  },
+  "standard-version": {
+    "scripts": {
+      "postbump": "npm run bump && git add -A"
+    }
+  }
+}
