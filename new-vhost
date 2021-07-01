@@ -53,9 +53,22 @@ _color_reset=$(printf '\e[0m')
 # Various helpers used across the script in different locations.
 ###############################################################################
 
+# Print version
+print_version() {
+  printf "new-vhost v%s\n" "$_version"
+  exit
+}
+
 # Display an error in case of an unplanned scenario then exit.
 error_unexpected() {
   printf "%sAn unexpected error occurred.%s Exit.\n" "$_color_error" "$_color_reset"
+  exit 1
+}
+
+# Display an error in case of invalid usage then exit.
+invalid_usage() {
+  printf "%sError:%s invalid usage.\n" "$_color_error" "$_color_reset"
+  printf "Use \`--help\` or \`-h\` to display all accepted options.\n"
   exit 1
 }
 
@@ -467,6 +480,19 @@ edit_hosts_file() {
 # Main
 ###############################################################################
 
+# Check options passed as arguments.
+# Require at least one argument.
+set_options() {
+  [ $# -eq 0 ] && error_unexpected
+
+  while [ $# -ge 1 ]; do
+    case $1 in
+    --version) print_version ;;
+    *) invalid_usage ;;
+    esac
+  done
+}
+
 # Main entry point
 main() {
   local _vhost
@@ -495,4 +521,6 @@ main() {
 
 if [ $# -eq 0 ]; then
   main
+else
+  set_options "$@"
 fi
