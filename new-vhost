@@ -1,13 +1,16 @@
-#! /bin/bash
-# newvhost.sh
-# Script to create a new vhost in Apache.
-# Originally written by Armand Philippot <contact@armandphilippot.com>.
+#! /bin/sh
+#
+# new-vhost
+# Create a new vhost in Apache.
+# Requirements: Apache (httpd), mkcert.
+# Tested on: Manjaro 21.0.5.
+# Originally written by Armand Philippot <https://www.armandphilippot.com/>.
 
 ###############################################################################
 #
-# MIT License
+# The MIT License (MIT)
 
-# Copyright (c) 2020 Armand Philippot
+# Copyright (c) 2021 Armand Philippot
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,104 +32,332 @@
 #
 ###############################################################################
 
-echo -e "This script allows you to automatically create a new vhost in Apache.\n"
-echo -e "The script must be executed with administrator rights (sudo).\n"
-echo -e "It is best to use this script only for a local development environment.\n"
+set -e
 
-# We are testing whether Apache is installed. If it is not, we stop the script.
-if command -v httpd &>/dev/null; then
-  echo -e "Apache is installed, let's continue."
-else
-  echo -e "Apache is not installed.\n"
-  exit 2
-fi
+_error_color=$'\e[31m'
+_success_color=$'\e[32m'
+_warning_color=$'\e[33m'
+_choice_color=$'\e[34m'
+_output_color=$'\e[35m'
+_no_color=$'\e[0m'
 
-if command -v mkcert &>/dev/null; then
-  echo -e "mkcert is installed, let's continue.\n"
-else
-  echo -e "mkcert is not installed. It is necessary to generate a certificate allowing access in https. Please install it and try again.\n"
-  exit 2
-fi
+# new-vhost.sh version
+version=1.0.1
 
-# We ask for the username to grant the correct permissions to the created folders.
-read -rp "Enter your username: " _username
-
-read -rp 'Enter the path of the working folder: ' _basedir
-if [ -d "$_basedir" ]; then
-  echo -e "The folder exists, let's continue.\n"
-  [[ "${_basedir}" != */ ]] && _basedir="${_basedir}/"
-else
-  until [ -d "$_basedir" ]; do
-    echo -e "The folder does not exist. Please enter a valid path.\n"
-    read -rp 'Enter the path of the working folder: ' _basedir
-  done
-fi
-
-# We ask for the name to use to create the virtual host (preferably with a TLD).
-read -rp 'Enter the name of the vhost to create: ' _vhost
-
-# We create the configuration file for the virtual host then we create the working folders. We grand correct permissions and we create a symlink in Apache folder.
-if command -v httpd &>/dev/null; then
-  if [ -d "/etc/httpd/conf/vhosts/$_vhost" ]; then
-    echo -e "The vhost already exists.\n"
+is_httpd_system() {
+  if [ ! -d /etc/httpd ]; then
+    echo -e "${_error_color}Error:${_no_color} This script only takes into account httpd, sorry."
+    echo "Exit."
     exit 2
+  fi
+}
+
+is_apache_installed() {
+  if command -v httpd &>/dev/null; then
+    echo -e "${_success_color}Success:${_no_color} Apache is installed, let's continue."
+    is_httpd_system
   else
-    cat <<-EOF >/etc/httpd/conf/vhosts/"${_vhost}"
+    echo -e "${_error_color}Error:${_no_color} Apache is not installed. Please install it before continuing.\n"
+    echo "Exit."
+    exit 2
+  fi
+}
+
+is_mkcert_installed() {
+  if command -v mkcert &>/dev/null; then
+    echo -e "${_success_color}Success:${_no_color} mkcert is installed, let's continue.\n"
+  else
+    echo -e "${_error_color}Error:${_no_color} mkcert is not installed. It is required to generate a local certificate and to allow access in HTTPS. Please install it before continuing.\n"
+    echo "Exit."
+    exit 2
+  fi
+}
+
+system_requirements() {
+  echo "Checking system requirements..."
+  is_apache_installed
+  is_mkcert_installed
+}
+
+error_callback() {
+  echo -e "${_error_color}An error has occured.${_no_color}"
+  echo "Exit."
+  exit 1
+}
+
+ask_vhost_name() {
+  read -p "Enter the vhost name: " _vhost
+  while read -p "You have entered: ${_output_color}${_vhost}${_no_color}. Is it correct? ${_choice_color}[y/n]${_no_color} " _validation; do
+    case $_validation in
+    [yY])
+      eval "$1=$_vhost"
+      return 0
+      ;;
+    [nN]) read -p 'Enter the vhost name: ' _vhost ;;
+    *) echo "${_error_color}Error:${_no_color} Enter ${_choice_color}[y]${_no_color}es or ${_choice_color}[n]${_no_color}o." ;;
+    esac
+  done
+}
+
+set_path() {
+  read -p "Enter the absolute path: " _path
+  if [ ! -d $_path ]; then
+    while [ ! -d $_path ]; do
+      echo -e "${_error_color}Error:${_no_color} You chose ${_output_color}${_path}${_no_color}. It is not a directory."
+      read -p "Please choose a valid path: " _path
+    done
+  fi
+  eval "$1=$_path"
+  return 0
+}
+
+ask_workspace_path() {
+  local _path=$PWD
+  echo "In which folder should we create the vhost?"
+  echo -e "${_choice_color}[1]${_no_color} $PWD (default)"
+  echo -e "${_choice_color}[2]${_no_color} Another directory"
+  echo -e "${_choice_color}[q]${_no_color} Cancel"
+  echo -e "${_choice_color}[Enter]${_no_color} default"
+  while read -p "Your choice: " _choice; do
+    case $_choice in
+    1 | "") break ;;
+    2)
+      set_path _path
+      break
+      ;;
+    [qQ]) exit ;;
+    *) echo -e "${_error_color}Error:${_no_color} Enter ${_choice_color}[1]${_no_color}, ${_choice_color}[2]${_no_color} or ${_choice_color}[3]${_no_color}." ;;
+    esac
+  done
+  while read -p "You chose: ${_output_color}${_path}${_no_color}. Is it correct? ${_choice_color}[y/n]${_no_color} " _validation; do
+    case $_validation in
+    [yY])
+      eval "$1=$_path"
+      return 0
+      ;;
+    [nN]) set_path _path ;;
+    *) echo "${_error_color}Error:${_no_color} Enter ${_choice_color}[y]${_no_color}es or ${_choice_color}[n]${_no_color}o." ;;
+    esac
+  done
+}
+
+ask_webroot_name() {
+  local _webroot_name=''
+  echo "What name should the webroot folder have?"
+  echo -e "${_choice_color}[1]${_no_color} htdocs (default)"
+  echo -e "${_choice_color}[2]${_no_color} www"
+  echo -e "${_choice_color}[3]${_no_color} Custom name"
+  echo -e "${_choice_color}[q]${_no_color} Cancel"
+  echo -e "${_choice_color}[Enter]${_no_color} default"
+  while read -p "Your choice: " _choice; do
+    case $_choice in
+    1 | "")
+      _webroot_name="htdocs"
+      break
+      ;;
+    2)
+      _webroot_name="www"
+      break
+      ;;
+    3)
+      read -p "Enter the webroot name: " _webroot_name
+      break
+      ;;
+    [qQ]) exit ;;
+    *) echo "${_error_color}Error:${_no_color} Enter ${_choice_color}[1]${_no_color}, ${_choice_color}[2]${_no_color} or ${_choice_color}[3]${_no_color}." ;;
+    esac
+  done
+  while read -p "You chose: ${_output_color}${_webroot_name}${_no_color}. Is it correct? ${_choice_color}[y/n]${_no_color} " _validation; do
+    case $_validation in
+    [yY])
+      eval "$1=$_webroot_name"
+      return 0
+      ;;
+    [nN]) read -p "Enter the webroot name: " _webroot_name ;;
+    *) echo "${_error_color}Error:${_no_color} Enter ${_choice_color}[y]${_no_color}es or ${_choice_color}[n]${_no_color}o." ;;
+    esac
+  done
+}
+
+ask_certs_path() {
+  local _certs_path=''
+  echo "Where do you want to save your certificates?"
+  echo -e "${_choice_color}[1]${_no_color} $(mkcert -CAROOT) (default)"
+  echo -e "${_choice_color}[2]${_no_color} Another path"
+  echo -e "${_choice_color}[q]${_no_color} Cancel"
+  echo -e "${_choice_color}[Enter]${_no_color} default"
+  while read -p "You choice: " _choice; do
+    case $_choice in
+    1 | "")
+      _certs_path="$(mkcert -CAROOT)"
+      break
+      ;;
+    2)
+      set_path _certs_path
+      break
+      ;;
+    [qQ]) exit ;;
+    *) echo "${_error_color}Error:${_no_color} Enter ${_choice_color}[1]${_no_color} or ${_choice_color}[2]${_no_color}." ;;
+    esac
+  done
+  while read -p "You chose: ${_output_color}${_certs_path}${_no_color}. Is it correct? ${_choice_color}[y/n]${_no_color} " _validation; do
+    case $_validation in
+    [yY])
+      eval "$1=$_certs_path"
+      return 0
+      ;;
+    [nN]) set_path _certs_path ;;
+    *) echo "${_error_color}Error:${_no_color} Enter ${_choice_color}[y]${_no_color}es or ${_choice_color}[n]${_no_color}o." ;;
+    esac
+  done
+}
+
+create_vhost_dir() {
+  local _path=""
+  local _folder=""
+  local _webroot=""
+  if [ $# -eq 3 ]; then
+    _path=$1
+    _folder=$2
+    _webroot=$3
+    if [ -d "$_path/$_folder" ]; then
+      echo -e "${_warning_color}Warning:${_no_color} The folder already exists. Abort."
+      return
+    else
+      mkdir -p $_path/$_folder/$_webroot
+      mkdir -p $_path/$_folder/logs
+      echo "${_success_color}Success:${_no_color} The vhost directories have been created. See:"
+    fi
+  else
+    error_callback
+  fi
+}
+
+generate_certs() {
+  local _path=""
+  local _vhost=""
+  if [ $# -eq 2 ]; then
+    _path=$1
+    _vhost=$2
+    if [ -f "$_path/$_vhost.pem" ] || [ -f "$_path/$_vhost-key.pem" ]; then
+      echo "${_warning_color}Warning:${_no_color} The certificate already exists. Exit."
+      exit 1
+    else
+      mkcert -cert-file $_path/$_vhost.pem -key-file $_path/$_vhost-key.pem "$_vhost" "*.$_vhost"
+    fi
+  else
+    error_callback
+  fi
+}
+
+create_vhost_config() {
+  local _path=""
+  local _vhost=""
+  local _certs_path=""
+  if [ $# -eq 4 ]; then
+    _path=$1
+    _vhost=$2
+    _webroot=$3
+    _certs_path=$4
+    if [ -f "/etc/httpd/conf/vhosts/$_vhost" ]; then
+      echo "${_warning_color}Warning:${_no_color} The vhost config already exists. Abort."
+      return
+    else
+      echo -e "You are currently logged in as: ${_output_color}$(whoami)${_no_color}.\n"
+      echo -e "${_warning_color}Warning:${_no_color} Administrator rights are required to continue. We will create the vhost config file and add an entry in hosts file."
+      echo -e "Please enter your administrator password:\n"
+      sudo sh -c "cat <<-EOF >/etc/httpd/conf/vhosts/${_vhost}
 <VirtualHost *:80>
     ServerAdmin webmaster@${_vhost}
-    DocumentRoot "/srv/http/${_vhost}/htdocs/"
+    DocumentRoot \"/srv/http/${_vhost}/${_webroot}/\"
     ServerName www.${_vhost}
     ServerAlias *.${_vhost}
-    ErrorLog "/srv/http/${_vhost}/logs/error.log"
-    CustomLog "/srv/http/${_vhost}/logs/access.log" combined
-    <Directory /srv/http/${_vhost}/htdocs/>
+    ErrorLog \"/srv/http/${_vhost}/logs/error.log\"
+    CustomLog \"/srv/http/${_vhost}/logs/access.log\" combined
+    <Directory /srv/http/${_vhost}/${_webroot}/>
         Options -Indexes +FollowSymLinks +MultiViews
         AllowOverride All
         Require all granted
+        <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteCond %{HTTP_HOST} ^vhost.test
+            RewriteRule (.*) http://www.vhost.test/$1 [R=301,L]
+        </IfModule>
     </Directory>
 </VirtualHost>
-
 <VirtualHost *:443>
     ServerAdmin webmaster@${_vhost}
-    DocumentRoot "/srv/http/${_vhost}/htdocs/"
+    DocumentRoot \"/srv/http/${_vhost}/${_webroot}/\"
     ServerName www.${_vhost}:443
     ServerAlias *.${_vhost}:443
     SSLEngine on
-    SSLCertificateFile "/home/${_username}/.local-certificates/${_vhost}.pem"
-    SSLCertificateKeyFile "/home/${_username}/.local-certificates/${_vhost}-key.pem"
-    ErrorLog "/srv/http/${_vhost}/logs/error.log"
-    CustomLog "/srv/http/${_vhost}/logs/access.log" combined
-    <Directory /srv/http/${_vhost}/htdocs/>
+    SSLCertificateFile \"${_certs_path}/${_vhost}.pem\"
+    SSLCertificateKeyFile \"${_certs_path}/${_vhost}-key.pem\"
+    ErrorLog \"/srv/http/${_vhost}/logs/error.log\"
+    CustomLog \"/srv/http/${_vhost}/logs/access.log\" combined
+    <Directory /srv/http/${_vhost}/${_webroot}/>
         Options -Indexes +FollowSymLinks +MultiViews
         AllowOverride All
         Require all granted
+        <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteCond %{HTTP_HOST} ^vhost.test
+            RewriteRule (.*) https://www.vhost.test/$1 [R=301,L]
+        </IfModule>
     </Directory>
 </VirtualHost>
-EOF
-    mkdir -p "${_basedir}/${_vhost}/htdocs"
-    mkdir -p "${_basedir}/${_vhost}/logs"
-    chown -R "${_username}:${_username}" "${_basedir}/${_vhost}"
-    chmod -R 755 "${_basedir}/${_vhost}"
-    ln -s "${_basedir}${_vhost}"/ /srv/http/
-    echo "Include conf/vhosts/${_vhost}" >>/etc/httpd/conf/httpd.conf
-    mkdir -p "/home/${_username}/.local-certificates"
-    mkcert -cert-file "/home/${_username}/.local-certificates/${_vhost}.pem" -key-file "/home/${_username}/.local-certificates/${_vhost}-key.pem" "${_vhost}" "*.${_vhost}"
-    chown -R ${_username}:${_username} /home/${_username}/.local-certificates/${_vhost}.pem
-    chown -R ${_username}:${_username} /home/${_username}/.local-certificates/${_vhost}-key.pem
+EOF"
+      sudo sh -c "ln -s $_path/$_vhost /srv/http"
+      sudo sh -c "echo \"Include conf/vhosts/${_vhost}\" >>/etc/httpd/conf/httpd.conf"
+      sudo sh -c "echo \"127.0.0.1  ${_vhost}\" >>/etc/hosts"
+      sudo sh -c "echo \"127.0.0.1  www.${_vhost}\" >>/etc/hosts"
+    fi
+  else
+    error_callback
   fi
-fi
+}
 
-# We add a line in the hosts file.
-echo "127.0.0.1 www.${_vhost}" >>/etc/hosts
-echo -e "The vhost and the corresponding folders have been created.\n"
+check_hosts_file() {
+  while read -p "Do you want to check the hosts file? ${_choice_color}[y/n]${_no_color} " _choice; do
+    case $_choice in
+    [yY])
+      cat /etc/hosts
+      break
+      ;;
+    [nN])
+      break
+      ;;
+    *) echo "${_error_color}Error:${_no_color} Enter ${_choice_color}[y]${_no_color}es or ${_choice_color}[n]${_no_color}o." ;;
+    esac
+  done
+}
 
-# We display the folders so that the user can verify the creation of the virtual host.
-if command -v httpd &>/dev/null; then
-  ls /srv/http/
-fi
-echo -e "\nYou can access it by entering ${_vhost} or www.${_vhost} in your browser.\n"
+main() {
+  echo -e "${_warning_color}Warning:${_no_color} it is better to use this script only for local development purposes.\n"
+  system_requirements
+  ask_vhost_name _vhost
+  echo -e "${_success_color}Success:${_no_color} Vhost saved.\n"
+  ask_workspace_path _workspace
+  echo -e "${_success_color}Success:${_no_color} Workspace saved.\n"
+  ask_webroot_name _webroot
+  echo -e "${_success_color}Success:${_no_color} Webroot name saved.\n"
+  ask_certs_path _certs
+  echo -e "${_success_color}Success:${_no_color} Certs path saved.\n"
+  echo "We are now going to:"
+  echo "* create the vhost folder"
+  echo "* generate a local certificate"
+  echo "* add the vhost config (sudo needed)"
+  echo -e "* add the vhost in hosts file (sudo needed)\n"
+  create_vhost_dir $_workspace $_vhost $_webroot
+  find "$_workspace/$_vhost" -maxdepth 1
+  generate_certs $_certs $_vhost
+  create_vhost_config $_workspace $_vhost $_webroot $_certs
+  echo -e "\n${_success_color}Success:${_no_color} The vhost config have been generated:"
+  find /etc/httpd/conf/vhosts/ -maxdepth 1 -name "*$_vhost*"
+  echo -e "\n"
+  check_hosts_file
+  echo -e "\n${_success_color}Success:${_no_color} All done!"
+  echo "Exit."
+}
 
-# If Apache is running, we restart it.
-systemctl is-active --quiet httpd && echo -e "We restart Apache.\n" && systemctl restart httpd
-
-echo -e "End of script.\n"
+main
