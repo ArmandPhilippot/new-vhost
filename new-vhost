@@ -280,8 +280,8 @@ create_vhost_config() {
         Require all granted
         <IfModule mod_rewrite.c>
             RewriteEngine On
-            RewriteCond %{HTTP_HOST} ^vhost.test
-            RewriteRule (.*) http://www.vhost.test/$1 [R=301,L]
+            RewriteCond %{HTTP_HOST} ^${_vhost}
+            RewriteRule (.*) http://www.${_vhost}/\$1 [R=301,L]
         </IfModule>
     </Directory>
 </VirtualHost>
@@ -301,8 +301,8 @@ create_vhost_config() {
         Require all granted
         <IfModule mod_rewrite.c>
             RewriteEngine On
-            RewriteCond %{HTTP_HOST} ^vhost.test
-            RewriteRule (.*) https://www.vhost.test/$1 [R=301,L]
+            RewriteCond %{HTTP_HOST} ^${_vhost}
+            RewriteRule (.*) https://www.${_vhost}/\$1 [R=301,L]
         </IfModule>
     </Directory>
 </VirtualHost>
