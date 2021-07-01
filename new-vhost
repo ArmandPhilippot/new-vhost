@@ -166,13 +166,34 @@ check_requirements() {
 # Ask user for all the needed information to configure the vhost.
 ###############################################################################
 
+is_vhost_already_exists() {
+  [ $# -ne 1 ] && error_unexpected
+
+  [ "$(grep -c " $1" < /etc/hosts)" -gt 0 ]
+}
+
 set_vhost_name() {
   local _vhost_name
 
   while true; do
     printf "\nEnter the vhost name: "
     read -r _vhost_name
+
+    case $_vhost_name in
+      *.*)
+        if [ -n "$_vhost_name" ]; then
+          is_correct "$_vhost_name" || break
+        fi
+        ;;
+      *) printf "\n%sError:%s the vhost name must contain the tld (example: vhost.tdl).\n" "$_color_error" "$_color_reset"
+    esac
   done
+
+  if is_vhost_already_exists "$_vhost_name"; then
+    printf "\n%sError:%s the vhost seems to be already configured.\n" "$_color_error" "$_color_reset"
+    printf "Exit.\n"
+    exit 1
+  fi
 
   eval "$1=$_vhost_name"
   printf "%sSuccess:%s vhost name saved.\n" "$_color_success" "$_color_reset"
