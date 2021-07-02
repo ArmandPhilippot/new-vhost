@@ -326,7 +326,7 @@ print_summary() {
   printf "* Certs: %s\n" "${_color_output}${_certs_path}${_color_reset}"
 
   while true; do
-    printf "\nShould we proceed? [y/n] "
+    printf "\nShould we proceed? %s[y/n]%s " "$_color_choice" "$_color_reset"
     read -r _summary_choice
 
     case $_summary_choice in
@@ -449,12 +449,54 @@ EOF"
   fi
 }
 
+ask_to_overwrite() {
+  [ $# -ne 1 ] && error_unexpected
+
+  local _symlink=$1
+  local _overwrite_choice
+
+  while true; do
+    printf "\nShould we overwrite? %s[y/n]%s " "$_color_choice" "$_color_reset"
+    read -r _overwrite_choice
+
+    case $_overwrite_choice in
+      [yY])
+        sudo sh -c "rm -Rf $_symlink"
+        break
+        ;;
+      [nN])
+        printf "Then abort.\n"
+        printf "Exit.\n"
+        exit
+        ;;
+      *) printf "\n%sError:%s Enter %s[y]%ses or %s[n]%so.\n" "$_color_error" "$_color_reset" "$_color_choice" "$_color_reset" "$_color_choice" "$_color_reset" ;;
+    esac
+  done
+}
+
 create_symlink() {
-  local _workspace_path
-  local _vhost_name
+  local _workspace_path=$1
+  local _vhost_name=$2
+  local _symlink_path
+  local _symlink_target
 
   printf "\nCreating symlink to Apache directory...\n"
   printf "%sWarning:%s Administrator rights are required to continue.\n" "$_color_warning" "$_color_reset"
+
+  _symlink_path="/srv/http/$_vhost_name"
+
+  if [ -h "$_symlink_path" ]; then
+    printf "%sWarning:%s A symlink with the same name already exists.\n" "$_color_warning" "$_color_reset"
+    _symlink_target=$(readlink -f "$_symlink_path")
+    printf "%sWarning:%s Symlink target: %s\n" "$_color_warning" "$_color_reset" "$_symlink_target"
+    ask_to_overwrite "$_symlink_path"
+  elif [ -d "$_symlink_path" ]; then
+    printf "%sWarning:%s A directory with the same name already exists.\n" "$_color_warning" "$_color_reset"
+    ask_to_overwrite "$_symlink_path"
+  elif [ -f "$_symlink_path" ]; then
+    printf "%sWarning:%s A file with the same name already exists.\n" "$_color_warning" "$_color_reset"
+    ask_to_overwrite "$_symlink_path"
+  fi
 
   sudo sh -c "ln -s $_workspace_path/$_vhost_name /srv/http"
 
