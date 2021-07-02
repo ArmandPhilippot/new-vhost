@@ -397,6 +397,12 @@ create_vhost_config() {
     printf "%sWarning:%s Administrator rights are required to continue. We will create the vhost config file and a symlink between the Apache directory and your workspace.\n" "$_color_warning" "$_color_reset"
     sudo sh -c "cat <<-EOF >/etc/httpd/conf/vhosts/${_vhost_name}
 <VirtualHost *:80>
+    ServerName ${_vhost_name}
+    ServerAlias *.${_vhost_name}
+    Redirect permanent / http://www.${_vhost_name}
+</VirtualHost>
+
+<VirtualHost *:80>
     ServerAdmin webmaster@${_vhost_name}
     DocumentRoot \"/srv/http/${_vhost_name}/${_webroot_name}/\"
     ServerName www.${_vhost_name}
@@ -407,13 +413,16 @@ create_vhost_config() {
         Options -Indexes +FollowSymLinks +MultiViews
         AllowOverride All
         Require all granted
-
-        <IfModule mod_rewrite.c>
-            RewriteEngine On
-            RewriteCond %{HTTP_HOST} ^${_vhost_name}
-            RewriteRule (.*) http://www.${_vhost_name}/\$1 [R=301,L]
-        </IfModule>
     </Directory>
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName ${_vhost_name}:443
+    ServerAlias *.${_vhost_name}:443
+    SSLEngine on
+    SSLCertificateFile \"${_certs_path}/${_vhost_name}.pem\"
+    SSLCertificateKeyFile \"${_certs_path}/${_vhost_name}-key.pem\"
+    Redirect permanent / https://www.${_vhost_name}
 </VirtualHost>
 
 <VirtualHost *:443>
@@ -430,12 +439,6 @@ create_vhost_config() {
         Options -Indexes +FollowSymLinks +MultiViews
         AllowOverride All
         Require all granted
-
-        <IfModule mod_rewrite.c>
-            RewriteEngine On
-            RewriteCond %{HTTP_HOST} ^${_vhost_name}
-            RewriteRule (.*) https://www.${_vhost_name}/\$1 [R=301,L]
-        </IfModule>
     </Directory>
 </VirtualHost>
 EOF"
