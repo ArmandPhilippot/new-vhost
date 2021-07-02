@@ -442,12 +442,23 @@ create_vhost_config() {
     </Directory>
 </VirtualHost>
 EOF"
-    sudo sh -c "ln -s $_workspace_path/$_vhost_name /srv/http"
     sudo sh -c "printf \"Include conf/vhosts/${_vhost_name}\" >>/etc/httpd/conf/httpd.conf"
 
     printf "%sSuccess:%s The vhost configuration has been created. See:\n" "$_color_success" "$_color_reset"
     find /etc/httpd/conf/vhosts/ -maxdepth 1 -name "*$_vhost_name*"
   fi
+}
+
+create_symlink() {
+  local _workspace_path
+  local _vhost_name
+
+  printf "\nCreating symlink to Apache directory...\n"
+  printf "%sWarning:%s Administrator rights are required to continue.\n" "$_color_warning" "$_color_reset"
+
+  sudo sh -c "ln -s $_workspace_path/$_vhost_name /srv/http"
+
+  printf "%sSuccess:%s Symlink has been created.\n" "$_color_success" "$_color_reset"
 }
 
 edit_hosts_file() {
@@ -540,6 +551,7 @@ main() {
   create_vhost_dir "$_workspace" "$_vhost" "$_webroot"
   generate_local_certs "$_certs" "$_vhost"
   create_vhost_config "$_workspace" "$_vhost" "$_webroot" "$_certs"
+  create_symlink "$_workspace" "$_vhost"
   edit_hosts_file "$_vhost"
   printf "\n\n%sSuccess:%s All done!\n" "$_color_success" "$_color_reset"
   printf "Exit.\n"
