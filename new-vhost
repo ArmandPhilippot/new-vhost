@@ -38,7 +38,7 @@ set -e
 # Global variables
 ###############################################################################
 # new-vhost version
-_version="2.0.0"
+_version="3.0.0"
 
 # Colors
 _color_error=$(printf '\e[31m')
